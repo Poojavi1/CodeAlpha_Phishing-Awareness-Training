@@ -1,0 +1,77 @@
+!pip install bandit pylint
+import os
+import sqlite3
+import subprocess
+
+# Create the users.db and users table
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+# Create table if not exists
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    password TEXT NOT NULL
+)
+""")
+
+# Insert test data
+cursor.execute("INSERT INTO users (username, password) VALUES ('admin', 'securepass')")
+conn.commit()
+conn.close()
+
+print("Database and users table created successfully!")
+
+
+# 🚨 Example of Insecure Code 🚨
+DB_USER = "admin"  # Hardcoded credentials (Security Risk)
+DB_PASSWORD = "password123"
+
+def get_user_info(username):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    query = f"SELECT * FROM users WHERE username = '{username}'"  # SQL Injection Risk ❌
+    cursor.execute(query)
+    result = cursor.fetchall()
+    conn.close()
+    return result
+
+def run_command(user_input):
+    return subprocess.run(f"echo {user_input}", shell=True)  # Command Injection Risk ❌
+
+# Example Usage
+print(get_user_info("admin"))
+run_command("malicious_code")
+
+# ✅ Secure Version ✅
+DB_USER = os.getenv("DB_USER")  # Use environment variables
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+def get_user_info_secure(username):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    query = "SELECT * FROM users WHERE username = ?"
+    cursor.execute(query, (username,))  # Secure Query ✅
+    result = cursor.fetchall()
+    conn.close()
+    return result
+
+def run_command_secure(user_input):
+    print(user_input)  # Instead of running a subprocess
+
+run_command_secure("safe_command")
+
+# Example Usage
+print(get_user_info_secure("admin"))
+run_command_secure("safe_command")
+
+# Run Automated Security Scans
+print("\nRunning Bandit Security Scan...")
+!bandit -r .
+
+print("\nRunning Semgrep Security Scan...")
+!semgrep scan --config=auto
+
+print("\nRunning Pylint for Code Quality Issues...")
+!pylint --errors-only secure_coding_review.py

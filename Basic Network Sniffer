@@ -1,0 +1,31 @@
+!pip install scapy
+from scapy.all import sniff, IP, TCP, UDP, Ether
+import pandas as pd
+from IPython.display import clear_output, display
+# List to store captured packet details
+packets_list = []
+
+def process_packet(packet):
+    """Callback function to process and display captured packets."""
+    global packets_list
+    
+    # Extract Packet Info
+    pkt_info = {
+        "Src MAC": packet[Ether].src if packet.haslayer(Ether) else "N/A",
+        "Dest MAC": packet[Ether].dst if packet.haslayer(Ether) else "N/A",
+        "Src IP": packet[IP].src if packet.haslayer(IP) else "N/A",
+        "Dest IP": packet[IP].dst if packet.haslayer(IP) else "N/A",
+        "Protocol": "TCP" if packet.haslayer(TCP) else "UDP" if packet.haslayer(UDP) else "Other",
+        "Src Port": packet[TCP].sport if packet.haslayer(TCP) else packet[UDP].sport if packet.haslayer(UDP) else "N/A",
+        "Dest Port": packet[TCP].dport if packet.haslayer(TCP) else packet[UDP].dport if packet.haslayer(UDP) else "N/A",
+        "Length": len(packet)
+    }
+    
+    # Append to the list
+    packets_list.append(pkt_info)
+    
+    # Clear output and display updated DataFrame
+    clear_output(wait=True)
+    display(pd.DataFrame(packets_list))
+# Start packet sniffing (captures 10 packets)
+sniff(prn=process_packet, count=10)
